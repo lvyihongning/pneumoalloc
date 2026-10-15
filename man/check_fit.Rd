@@ -42,4 +42,11 @@ rare outcomes and in small populations, e.g. composition among few
 multiple carriers, where categories without any allocation in a survey
 are pulled towards the others. Adjusted models may differ.
 }
+
+For the \code{density} approach, the summary also reports the Kish effective
+sample size of the carrier weights \eqn{\Theta_i / \bar{\Theta}_t} as a
+percentage of carriers. Because density is skewed, few high-density
+carriers dominate the weighted composition likelihood; when this
+percentage is low, the posterior intervals of serotype-specific
+estimates understate the uncertainty.
 }

@@ -69,7 +69,10 @@ composition among carriers (fractional multinomial logit) and density
 among carriers (lognormal, with a sub-model for the number of
 serotypes), fitted jointly. All fits share the population, design,
 priors and sampler settings; only the allocation weights (and, for the
-\code{density} approach, the carrier weight) differ.
+\code{density} approach, the carrier weight) differ. Under the \code{density}
+approach each carrier's contribution to the composition likelihood is
+weighted by \eqn{\Theta_i / \bar{\Theta}_t}: total density relative
+to the mean total density among carriers of the same survey round.
 }
 \details{
 With \code{population = "multiple"}, the same framework is fitted among

@@ -4,8 +4,10 @@
 #' counterparts of [fit_carriage()]. For the four allocation approaches,
 #' the share of serotype category s among carriers is
 #' `sum_k h_k w_ks / sum_k h_k`, where `w_ks` are the allocation weights
-#' ([allocate_weights()]) and `h_k` is 1, or the carrier's density for the
-#' `density` approach. Prevalence is the crude carriage prevalence times
+#' ([allocate_weights()]) and `h_k` is 1, or \eqn{\Theta_k / \bar{\Theta}_t}
+#' (total density relative to the mean among carriers of survey round t)
+#' for the `density` approach; within a round the normalisation cancels.
+#' Prevalence is the crude carriage prevalence times
 #' this share, so serotype prevalences add up to carriage prevalence. For
 #' the `presence` approach, prevalence is the proportion of children in
 #' whom the serotype (or any vaccine or non-vaccine serotype) is detected.

@@ -20,6 +20,11 @@
 // rounding (tests/testthat/fixtures/unified_published.stan and
 // test-unified_equivalence.R). The commune random effects of the published
 // file were removed (pneumoalloc fits no cluster effects).
+// Approach iv weights are normalised WITHIN each survey round:
+//   h_k = Theta_k / Theta_bar_t, with Theta_bar_t the mean total density
+// among the carriers of survey round t (the published file used one mean
+// over all rounds). The weights of each round then add up to its number of
+// carriers, so no round gains or loses information through the weighting.
 // m_obs is the number of detected serotypes, capped at M
 // (prepare_carriage_data(max_serotypes = )); m_sh, the number of
 // allocation categories, may exceed it.
@@ -40,8 +45,10 @@
 //   iii relative abund.   relative abundance theta_is             0
 //   iv  density           relative abundance theta_is             1
 //
-// Carrier weight in (b):  h_k = 1             (i-iii)
-//                         h_k = D_k / Dbar    (iv)
+// Carrier weight in (b):  h_k = 1                         (i-iii)
+//                         h_k = Theta_k / Theta_bar_t     (iv)
+// Theta_k: total density of carrier k; theta_ks: relative abundance of
+// serotype s; Theta_bar_t: mean total density among carriers of round t.
 // and the same weight is used in the standardisation in generated
 // quantities (psi_i for i-iii, psi_i * E[D] for iv).
 //
@@ -50,7 +57,7 @@
 // to Monte Carlo error); only the composition differs.
 //
 // Changes relative to M4_psiweighted_v3.stan:
-//   1. use_dens_weight flag (data): h_k = 1 when 0, D_k / Dbar when 1,
+//   1. use_dens_weight flag (data): h_k = 1 when 0, Theta_k / Theta_bar_t when 1,
 //      applied in the share likelihood AND in both standardisations.
 //   2. m_sh and m_obs are separated:
 //        m_obs[k] = number of detected serotypes (multiplicity, density)
@@ -111,7 +118,7 @@ data {
   vector[N_pos] logD_pos;                 // log(dens_pos), natural log
   vector<lower=0>[N_pos] dens_pos;
 
-  // 0 = approaches i-iii (h_k = 1); 1 = approach iv (h_k = D_k / Dbar)
+  // 0 = approaches i-iii (h_k = 1); 1 = approach iv (h_k = Theta_k / Theta_bar_t)
   int<lower=0, upper=1> use_dens_weight;
 
   // Prior scales, supplied as data so sensitivity analyses need no
@@ -135,9 +142,9 @@ transformed data {
   vector[N_pos] w_dens;
   vector[C] vt_mask_vec;
 
-  // Dbar is computed here rather than passed in, so that
-  // sum(w_dens) = N_pos holds by construction under every approach.
-  real dens_scale = mean(dens_pos);
+  // Theta_bar_t is computed here rather than passed in, so that the
+  // weights of each round add up to its number of carriers by construction.
+  real dens_scale = mean(dens_pos);   // overall mean, reported only
 
   real w_dens_sum;
   matrix[K, C] XtWA;
@@ -148,11 +155,36 @@ transformed data {
   // Kish effective sample size of the carrier weights,
   // (sum w)^2 / sum(w^2). Equals N_pos when use_dens_weight = 0.
   real kish_ess_dens_weights;
+  // by survey round: sum of the carrier weights (= carriers in the round)
+  // and their Kish effective sample size
+  vector[T] w_sum_round = rep_vector(0.0, T);
+  vector[T] kish_ess_round;
 
   for (k in 1:N_pos) X_pos[k] = X[pos_idx[k]];
 
-  for (k in 1:N_pos)
-    w_dens[k] = use_dens_weight ? dens_pos[k] / dens_scale : 1.0;
+  // Approach iv weights: Theta_k / Theta_bar_t, normalised within each
+  // survey round (round = the survey indicator among the first T columns).
+  {
+    array[N_pos] int t_pos;
+    vector[T] w2_round = rep_vector(0.0, T);
+    vector[T] sum_t = rep_vector(0.0, T);
+    vector[T] n_t = rep_vector(0.0, T);
+    for (k in 1:N_pos) {
+      t_pos[k] = 0;
+      for (t in 1:T) if (X_pos[k, t] == 1) t_pos[k] = t;
+      if (t_pos[k] == 0) reject("no survey indicator for carrier k = ", k);
+      sum_t[t_pos[k]] += dens_pos[k];
+      n_t[t_pos[k]] += 1;
+    }
+    for (k in 1:N_pos) {
+      w_dens[k] = use_dens_weight
+                  ? dens_pos[k] / (sum_t[t_pos[k]] / n_t[t_pos[k]]) : 1.0;
+      w_sum_round[t_pos[k]] += w_dens[k];
+      w2_round[t_pos[k]] += square(w_dens[k]);
+    }
+    for (t in 1:T)
+      kish_ess_round[t] = w2_round[t] > 0 ? square(w_sum_round[t]) / w2_round[t] : 0;
+  }
   for (c in 1:C) vt_mask_vec[c] = vt_mask_sero[c];
 
   w_dens_sum = sum(w_dens);
@@ -193,7 +225,7 @@ transformed data {
   }
 
   print("use_dens_weight = ", use_dens_weight,
-        " ; Dbar = ", dens_scale,
+        " ; mean density (all rounds) = ", dens_scale,
         " ; sum(w_dens) = ", w_dens_sum, " (should equal N_pos = ", N_pos, ")",
         " ; Kish effective sample size of carrier weights = ",
         kish_ess_dens_weights, " of ", N_pos, " carriers");
@@ -276,6 +308,8 @@ generated quantities {
   // Diagnostics carried through from transformed data
   real dens_weight_kish_ess = kish_ess_dens_weights;
   real dens_weight_sum = w_dens_sum;
+  vector[T] dens_weight_sum_round = w_sum_round;
+  vector[T] dens_weight_kish_ess_round = kish_ess_round;
 
   real dens_fold_2vs1 = exp(gamma_ge2);
   real dens_fold_3vs2 = exp(gamma_ge3);

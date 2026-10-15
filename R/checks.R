@@ -18,6 +18,13 @@
 #'   multiple carriers, where categories without any allocation in a survey
 #'   are pulled towards the others. Adjusted models may differ.
 #'
+#' For the `density` approach, the summary also reports the Kish effective
+#' sample size of the carrier weights \eqn{\Theta_i / \bar{\Theta}_t} as a
+#' percentage of carriers. Because density is skewed, few high-density
+#' carriers dominate the weighted composition likelihood; when this
+#' percentage is low, the posterior intervals of serotype-specific
+#' estimates understate the uncertainty.
+#'
 #' @param object A `pneumoalloc_fit` object, or a `pneumoalloc_fits`
 #'   object (checked fit by fit).
 #' @param rhat_max Largest acceptable R-hat.
@@ -84,6 +91,19 @@ check_fit <- function(object, rhat_max = 1.01, ess_min_per_chain = 100,
   identity_value <- if (any(applies)) max(identities$max_abs_deviation[applies]) else NA_real_
   identity_pass <- if (any(applies)) all(identities$pass[applies]) else NA
 
+  # approach iv: how much information the density weights leave
+  ess_rows <- NULL
+  if (object$type %in% c("unified", "unified_multiple") &&
+      identical(object$approach$name, "density")) {
+    n_w <- if (object$type == "unified") object$data$N_pos else length(object$rows)
+    ess <- stats::median(draws_array(object, "dens_weight_kish_ess"))
+    ess_rows <- tibble::tibble(
+      check = "density weights: effective sample size (% of carriers)",
+      value = 100 * ess / n_w,
+      threshold = "information; intervals assume all carriers (see ?check_fit)",
+      pass = NA
+    )
+  }
   summary <- tibble::tibble(
     check = c("divergent transitions", "max treedepth hits", "min E-BFMI",
               "max R-hat", "min bulk ESS", "min tail ESS",
@@ -105,6 +125,7 @@ check_fit <- function(object, rhat_max = 1.01, ess_min_per_chain = 100,
              identity_pass, NA)
   )
 
+  summary <- rbind(summary, ess_rows)
   structure(
     list(summary = summary, sampler = sampler, convergence = convergence,
          identities = identities, crude = crude,

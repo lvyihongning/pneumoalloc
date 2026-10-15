@@ -30,8 +30,10 @@ Model-free estimates by survey round under one approach; the crude
 counterparts of \code{\link[=fit_carriage]{fit_carriage()}}. For the four allocation approaches,
 the share of serotype category s among carriers is
 \verb{sum_k h_k w_ks / sum_k h_k}, where \code{w_ks} are the allocation weights
-(\code{\link[=allocate_weights]{allocate_weights()}}) and \code{h_k} is 1, or the carrier's density for the
-\code{density} approach. Prevalence is the crude carriage prevalence times
+(\code{\link[=allocate_weights]{allocate_weights()}}) and \code{h_k} is 1, or \eqn{\Theta_k / \bar{\Theta}_t}
+(total density relative to the mean among carriers of survey round t)
+for the \code{density} approach; within a round the normalisation cancels.
+Prevalence is the crude carriage prevalence times
 this share, so serotype prevalences add up to carriage prevalence. For
 the \code{presence} approach, prevalence is the proportion of children in
 whom the serotype (or any vaccine or non-vaccine serotype) is detected.

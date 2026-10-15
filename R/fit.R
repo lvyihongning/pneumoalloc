@@ -6,7 +6,10 @@
 #' among carriers (lognormal, with a sub-model for the number of
 #' serotypes), fitted jointly. All fits share the population, design,
 #' priors and sampler settings; only the allocation weights (and, for the
-#' `density` approach, the carrier weight) differ.
+#' `density` approach, the carrier weight) differ. Under the `density`
+#' approach each carrier's contribution to the composition likelihood is
+#' weighted by \eqn{\Theta_i / \bar{\Theta}_t}: total density relative
+#' to the mean total density among carriers of the same survey round.
 #'
 #' With `population = "multiple"`, the same framework is fitted among
 #' children with multiple serotype carriage only. There is then no

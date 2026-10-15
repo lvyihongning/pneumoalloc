@@ -15,7 +15,10 @@ test_that("unified.stan has the log density of the published model", {
   }
   orig <- compile(test_path("fixtures", "unified_published.stan"))
   fast <- compile(carriage_stan_file("unified"))
-  for (a in c("abundance", "density")) {
+  # Approaches i-iii: identical model. Approach iv is intentionally
+  # different: its weights are normalised within each survey round
+  # (Theta_i / Theta_bar_t), the published file used one overall mean.
+  for (a in c("equal", "abundance")) {
     sd <- carriage_stan_data(dat, "unified", a, covariates = ~ age_z + sex)
     # the published file also takes commune data; one commune, no effects
     sd0 <- c(sd, list(J = 1L, commune_id = rep(1L, sd$N), use_re = 0L,

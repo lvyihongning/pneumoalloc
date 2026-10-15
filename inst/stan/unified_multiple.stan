@@ -9,6 +9,9 @@
 // m_sh <= m_obs was removed, and the commune random effects of the
 // published file were removed (pneumoalloc fits no cluster effects).
 // Neither change alters the model fitted in the analysis (use_re = 0).
+// Approach iv weights are normalised WITHIN each survey round
+// (Theta_i / Theta_bar_t, mean over the multiple carriers of round t); the
+// published file used one mean over all rounds.
 // Population: children with >= 2 detected serotypes (m = 2 or 3).
 // There is no carriage component: every child here is a multiple
 // carrier, so the estimand is the composition of multiple carriage,
@@ -30,7 +33,7 @@
 //   iii relative abund.   relative abundance theta_is             0
 //   iv  density           relative abundance theta_is             1
 //
-// Child weight in (b): h_k = 1 (i-iii) or D_k / Dbar (iv), and the same
+// Child weight in (b): h_k = 1 (i-iii) or Theta_k / Theta_bar_t (iv), and the same
 // weight in the standardisation (1 or E[D_i | X_i, t]).
 //
 // (c) and (d) share no parameters with (b), so meanD, P_m3 and
@@ -61,7 +64,7 @@ data {
   vector[N] logD;                       // log(dens), natural log
   vector<lower=0>[N] dens;
 
-  // 0 = approaches i-iii (h_k = 1); 1 = approach iv (h_k = D_k / Dbar)
+  // 0 = approaches i-iii (h_k = 1); 1 = approach iv (h_k = Theta_k / Theta_bar_t)
   int<lower=0, upper=1> use_dens_weight;
 
   // Prior scales (defaults as in the primary model)
@@ -81,18 +84,35 @@ transformed data {
   array[N] int m3;
   vector[C] vt_mask_vec;
 
-  // Dbar is computed here, so sum(w_dens) = N under every approach.
-  real dens_scale = mean(dens);
+  // Theta_bar_t is computed here, so the weights of each round add up to
+  // its number of children.
+  real dens_scale = mean(dens);   // overall mean, reported only
   real kish_ess_dens_weights;
 
   if (K < T) reject("X must start with the T survey indicator columns");
 
   for (i in 1:N) {
-    w_dens[i] = use_dens_weight ? dens[i] / dens_scale : 1.0;
+    w_dens[i] = 1.0;
     m3[i]     = m_obs[i] == 3;
     m3_vec[i] = m3[i];
   }
   for (c in 1:C) vt_mask_vec[c] = vt_mask_sero[c];
+
+  // Approach iv weights: Theta_i / Theta_bar_t, normalised within each
+  // survey round (round = the survey indicator among the first T columns).
+  if (use_dens_weight) {
+    array[N] int t_i;
+    vector[T] sum_t = rep_vector(0.0, T);
+    vector[T] n_t = rep_vector(0.0, T);
+    for (i in 1:N) {
+      t_i[i] = 0;
+      for (t in 1:T) if (X[i, t] == 1) t_i[i] = t;
+      if (t_i[i] == 0) reject("no survey indicator for child i = ", i);
+      sum_t[t_i[i]] += dens[i];
+      n_t[t_i[i]] += 1;
+    }
+    for (i in 1:N) w_dens[i] = dens[i] / (sum_t[t_i[i]] / n_t[t_i[i]]);
+  }
 
   // Kish effective sample size of the child weights; N when unweighted.
   kish_ess_dens_weights = square(sum(w_dens)) / dot_self(w_dens);
@@ -104,7 +124,7 @@ transformed data {
       reject("Active sh_w values do not sum to 1 at child i = ", i);
   }
 
-  print("use_dens_weight = ", use_dens_weight, " ; Dbar = ", dens_scale,
+  print("use_dens_weight = ", use_dens_weight, " ; mean density (all rounds) = ", dens_scale,
         " ; Kish effective sample size = ", kish_ess_dens_weights, " of ", N);
 }
 
@@ -146,7 +166,7 @@ model {
   m3 ~ bernoulli_logit(X * beta_m3);
 
   // (b) Composition: lp += h_k * sum_s q_ks * log rho_ks.
-  //     w_dens is the OBSERVED D_k / Dbar for approach iv.
+  //     w_dens is the OBSERVED Theta_k / Theta_bar_t for approach iv.
   {
     matrix[N, C] eta = X * beta_share;
     for (i in 1:N) {

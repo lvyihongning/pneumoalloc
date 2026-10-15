@@ -28,9 +28,11 @@ approach:
 \item \code{dominant}: 1 for the category of the dominant serotype;
 \item \code{equal}: 1/n for each of the n detected serotypes;
 \item \code{abundance} and \code{density}: the relative abundance of each detected
-serotype. The \code{density} approach also weights carriers by their
-density inside the model (and in \code{\link[=describe_prevalence]{describe_prevalence()}}), so its
-allocation equals that of \code{abundance};
+serotype (\eqn{\theta_{is}}). The \code{density} approach also weights
+each carrier by \eqn{\Theta_i / \bar{\Theta}_t}, its total density
+relative to the mean among carriers of the same survey round, inside
+the model (and in \code{\link[=describe_prevalence]{describe_prevalence()}}), so its allocation equals
+that of \code{abundance};
 \item \code{presence}: 1 for every category with at least one detected serotype
 (rows then sum to more than one for multiple carriers).
 }

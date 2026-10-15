@@ -37,9 +37,16 @@ component:\tabular{llll}{
    i \tab \code{dominant} \tab all to the dominant serotype \tab 1 \cr
    ii \tab \code{equal} \tab 1 / n to each of the n serotypes \tab 1 \cr
    iii \tab \code{abundance} \tab relative abundance of each serotype \tab 1 \cr
-   iv \tab \code{density} \tab relative abundance of each serotype \tab D / mean(D) \cr
+   iv \tab \code{density} \tab relative abundance of each serotype \tab \eqn{\Theta_i / \bar{\Theta}_t} \cr
 }
 
+
+Here \eqn{\Theta_i} is the total pneumococcal density of child i,
+\eqn{\theta_{is}} the relative abundance of serotype s (so the
+serotype-specific density is \eqn{\theta_{is} \Theta_i}), and
+\eqn{\bar{\Theta}_t} the mean total density among the carriers of the
+same survey round t. Normalising within each round keeps the weights of a
+round summing to its number of carriers.
 
 \strong{Results}: \code{\link[=marginal_prevalence]{marginal_prevalence()}}, \code{\link[=prevalence_ratios]{prevalence_ratios()}},
 \code{\link[=marginal_density]{marginal_density()}}, \code{\link[=density_ratios]{density_ratios()}}, \code{\link[=check_fit]{check_fit()}} and

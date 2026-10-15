@@ -31,7 +31,14 @@
 #' | i        | `dominant`  | all to the dominant serotype          | 1              |
 #' | ii       | `equal`     | 1 / n to each of the n serotypes      | 1              |
 #' | iii      | `abundance` | relative abundance of each serotype   | 1              |
-#' | iv       | `density`   | relative abundance of each serotype   | D / mean(D)    |
+#' | iv       | `density`   | relative abundance of each serotype   | \eqn{\Theta_i / \bar{\Theta}_t} |
+#'
+#' Here \eqn{\Theta_i} is the total pneumococcal density of child i,
+#' \eqn{\theta_{is}} the relative abundance of serotype s (so the
+#' serotype-specific density is \eqn{\theta_{is} \Theta_i}), and
+#' \eqn{\bar{\Theta}_t} the mean total density among the carriers of the
+#' same survey round t. Normalising within each round keeps the weights of a
+#' round summing to its number of carriers.
 #'
 #' **Results**: [marginal_prevalence()], [prevalence_ratios()],
 #' [marginal_density()], [density_ratios()], [check_fit()] and

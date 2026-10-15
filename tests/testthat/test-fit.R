@@ -51,6 +51,17 @@ test_that("unified framework, all children, all approaches", {
   expect_true(all(c("reportable", "reference_q97.5", "vaccine_type") %in% names(pr)))
   expect_false(any(pr$survey == "2016"))
 
+  # approach iv weights are normalised within each survey round
+  carriers <- as.vector(table(dat$survey[dat$pos_idx]))
+  w_round <- colMeans(posterior::as_draws_matrix(fits$density$fit$draws("dens_weight_sum_round")))
+  expect_equal(unname(w_round), carriers, tolerance = 1e-8)
+  ess_round <- colMeans(posterior::as_draws_matrix(fits$density$fit$draws("dens_weight_kish_ess_round")))
+  expect_true(all(ess_round <= carriers + 1e-8))
+  w_iii <- colMeans(posterior::as_draws_matrix(fits$abundance$fit$draws("dens_weight_kish_ess_round")))
+  expect_equal(unname(w_iii), carriers, tolerance = 1e-8)
+  ess_row <- check_fit(fits$density)$summary
+  expect_true(any(grepl("effective sample size", ess_row$check)))
+
   cmp <- compare_approaches(fits)
   expect_false(any(cmp$shared$approach == 4))
   expect_true(all(abs(cmp$shared$z) < 6, na.rm = TRUE))

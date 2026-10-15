@@ -20,6 +20,11 @@
   * `fit_density()`: density among carriers for all pneumococci, PCV10 and
     non-PCV10 serotypes, with an optional survey x multiplicity
     interaction (`All_density_20261002.stan`).
+* Approach iv (`density`): carrier weights are Θᵢ / Θ̄ₜ, with Θ̄ₜ the mean
+  total density among carriers of the same survey round. The published
+  Stan files used one mean over all rounds; normalising within each round
+  keeps each round's weights summing to its number of carriers. Approaches
+  i-iii are unchanged.
 * No commune (cluster) random effects: they were removed from all Stan
   files; the published analyses did not use them.
 * `vaccine_types()` gives the serotypes of PCV7, PCV10, PCV10-SII, PCV13,

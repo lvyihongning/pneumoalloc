@@ -26,7 +26,11 @@ compared on the same population, design and priors:
 | i | `dominant` | all to the dominant serotype | 1 |
 | ii | `equal` | 1/n to each of the n serotypes | 1 |
 | iii | `abundance` | relative abundance of each serotype | 1 |
-| iv | `density` | relative abundance of each serotype | density / mean density |
+| iv | `density` | relative abundance of each serotype | Θᵢ / Θ̄ₜ |
+
+Θᵢ is the total density of child i, θᵢₛ the relative abundance of serotype s
+(serotype-specific density θᵢₛΘᵢ), and Θ̄ₜ the mean total density among
+carriers of the same survey round t.
 
 All estimates are standardised over the study population. Prevalence
 ratios are formed within each posterior draw, relative to the
