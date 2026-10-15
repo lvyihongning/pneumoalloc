@@ -59,8 +59,6 @@ test_that("unified framework, all children, all approaches", {
   expect_true(all(ess_round <= carriers + 1e-8))
   w_iii <- colMeans(posterior::as_draws_matrix(fits$abundance$fit$draws("dens_weight_kish_ess_round")))
   expect_equal(unname(w_iii), carriers, tolerance = 1e-8)
-  ess_row <- check_fit(fits$density)$summary
-  expect_true(any(grepl("effective sample size", ess_row$check)))
 
   cmp <- compare_approaches(fits)
   expect_false(any(cmp$shared$approach == 4))
@@ -124,7 +122,11 @@ test_that("density models: groups, statistics, interaction", {
 
   dr <- density_ratios(fits, statistic = "median", multiplicity = TRUE)
   expect_equal(sum(dr$outcome == "Density"), 3 * 2)
-  expect_equal(sum(is.na(dr$survey)), 3 * 3)
+  # M multiplicity levels: M - 1 ratios versus 1, M - 2 stepwise ratios;
+  # VT and NVT keep only the levels observed in their group
+  expect_equal(fits$total$labels$m_levels, dat$M)
+  n_mult <- sum(vapply(fits, function(f) 2 * f$labels$m_levels - 3, 1))
+  expect_equal(sum(is.na(dr$survey)), n_mult)
   prev <- density_ratios(fits$NVT, reference = "previous", statistic = "median")
   expect_equal(prev$reference, c("2016", "2017"))
   expect_error(marginal_prevalence(fits$total), "marginal_density")

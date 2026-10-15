@@ -8,6 +8,8 @@
 # It takes a few minutes, most of which is compiling the five Stan models
 # the first time (they are cached afterwards). Short chains are for
 # testing only: use the defaults (4 chains x 2000 draws) for analyses.
+# With these short chains, an R-hat slightly above 1.01 (marked x in the
+# checks) is expected and not a problem with the model.
 
 library(pneumoalloc)
 

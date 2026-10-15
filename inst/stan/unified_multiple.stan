@@ -82,6 +82,7 @@ transformed data {
   vector[N] w_dens;
   vector[N] m3_vec;
   array[N] int m3;
+  int has_m3;                           // any child with 3+ serotypes
   vector[C] vt_mask_vec;
 
   // Theta_bar_t is computed here, so the weights of each round add up to
@@ -96,6 +97,7 @@ transformed data {
     m3[i]     = m_obs[i] == 3;
     m3_vec[i] = m3[i];
   }
+  has_m3 = sum(m3) > 0;
   for (c in 1:C) vt_mask_vec[c] = vt_mask_sero[c];
 
   // Approach iv weights: Theta_i / Theta_bar_t, normalised within each
@@ -203,7 +205,8 @@ generated quantities {
 
     for (t in 1:T) {
       matrix[N, C] eta_t = X_pred[t] * beta_share;
-      vector[N] p3 = inv_logit(X_pred[t] * beta_m3);
+      // with no child at 3+ (top = 2), gamma_ge3 is not identified: p3 = 0
+      vector[N] p3 = has_m3 ? inv_logit(X_pred[t] * beta_m3) : rep_vector(0.0, N);
       // E[D | X_i, t], marginalised over m = 2 / 3
       vector[N] Dhat = exp(X_pred[t] * beta_dens + half_v)
                        .* (1 - p3 + p3 * exp(gamma_ge3));

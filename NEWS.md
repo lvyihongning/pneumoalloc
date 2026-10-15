@@ -37,6 +37,20 @@
   columns; the models distinguish up to the largest number detected (2 to
   5) or a user-set maximum, with higher numbers pooled (e.g. "3+
   serotypes"). Allocation always uses all detected serotypes.
+* Input checks: a serotype listed in two slots of one child is counted
+  once (abundances added); `other_label` in `categories` is ignored; with
+  the default `categories`, non-vaccine serotypes are in serotype order
+  with the most frequently detected one last (the reference category), so
+  results do not depend on row order; a warning when the reference
+  category holds little allocation; a clear error for a covariate with a
+  single value among a model's children.
+* Multiplicity: VT and NVT density models distinguish only the numbers of
+  group serotypes observed; the unified model reports density for 1, 2
+  and 3+ serotypes, the levels of its density component; among multiple
+  carriers, the 3-serotype term is dropped when no child has three or
+  more serotypes (or `max_serotypes = 2`).
+* `describe_prevalence()` and `describe_group_proportions()` handle survey
+  rounds without (multiple) carriers.
 * Adjusted models take any number of covariates (numeric or factor,
   transformations and interactions) through the `covariates` formula.
 * `prepare_carriage_data()`, `allocate_weights()` (including

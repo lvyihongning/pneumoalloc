@@ -27,8 +27,17 @@ design_matrices <- function(dat, rows, covariates = NULL,
   df$.survey <- dat$survey[rows]
   # covariate levels absent from this population (e.g. among multiple
   # carriers) would give empty design columns
+  single <- character()
   for (v in all.vars(covariates %||% ~ 1)) {
     if (is.factor(df[[v]])) df[[v]] <- droplevels(df[[v]])
+    discrete <- is.factor(df[[v]]) || is.character(df[[v]]) || is.logical(df[[v]])
+    if (discrete && length(unique(df[[v]])) < 2) single <- c(single, v)
+  }
+  if (length(single) > 0) {
+    cli::cli_abort(c(
+      "Covariate{?s} {.val {single}} take{?s/} a single value among the children of this model.",
+      "i" = "Drop {cli::qty(length(single))}{?it/them} from {.arg covariates} for this model."
+    ), call = call)
   }
   empty <- dat$survey_levels[table(df$.survey) == 0]
   if (length(empty) > 0) {
@@ -80,6 +89,7 @@ prepare_model_data <- function(dat, model, approach = NULL, covariates = NULL,
     des <- design_matrices(dat, rows, covariates, call = call)
     A <- allocation_matrix(dat$sero_long, dat$N_pos, dat$m_obs, dat$sero_levels,
                            ap$name, dat$has_abundance, call = call)
+    check_reference_category(A, ap$name)
     # allocation uses all detected serotypes; multiplicity is capped at M
     sp <- build_share_sparse(A, max(dat$m_obs))
     stan_data <- list(
@@ -108,6 +118,7 @@ prepare_model_data <- function(dat, model, approach = NULL, covariates = NULL,
     des <- design_matrices(dat, rows, covariates, call = call)
     A <- allocation_matrix(mp$sero_long, mp$N, mp$m_obs, mp$sero_levels,
                            ap$name, dat$has_abundance, call = call)
+    check_reference_category(A, ap$name)
     sp <- build_share_sparse(A, max(mp$m_obs))   # m_model: 2 or 3+
     stan_data <- list(
       T = n_rounds, C = length(mp$sero_levels), N = mp$N, K = des$K,
@@ -162,10 +173,17 @@ prepare_model_data <- function(dat, model, approach = NULL, covariates = NULL,
   } else if (model == "density") {
     grp <- density_group(dat, density$group, density$multiplicity, call = call)
     rows <- grp$rows
+    # multiplicity levels observed in this group (at least 2 for the model)
+    M_grp <- max(2L, grp$m)
+    if (max(grp$m) < 2) {
+      cli::cli_inform(
+        "No carrier has more than one {density$group} serotype; the multiplicity effect is informed by its prior only."
+      )
+    }
     des <- design_matrices(dat, rows, covariates, call = call)
     is_survey <- seq_len(des$K) <= n_rounds
     stan_data <- list(
-      T = n_rounds, N_pos = length(rows), K = des$K, M = dat$M,
+      T = n_rounds, N_pos = length(rows), K = des$K, M = M_grp,
       baseline = dat$reference,
       X_pos = des$X, X_pred_pos = des$X_pred,
       survey_pos = as.integer(dat$survey[rows]),
@@ -181,13 +199,26 @@ prepare_model_data <- function(dat, model, approach = NULL, covariates = NULL,
     )
     labels <- list(group = density$group, multiplicity = density$multiplicity,
                    interaction = isTRUE(density$interaction),
-                   density = grp$density, m = grp$m)
+                   density = grp$density, m = grp$m,
+                   m_levels = M_grp, m_plus = any(grp$m_raw > M_grp))
   } else {
     cli::cli_abort("Unknown model {.val {model}}.", call = call)
   }
 
   list(stan_data = stan_data, model = model, approach = ap, rows = rows,
        design = des$colnames, allocation = A, labels = labels)
+}
+
+# The composition priors are on log ratios against the last category, so
+# that category should hold a fair part of the allocation.
+check_reference_category <- function(A, approach) {
+  mass <- sum(A[, ncol(A)])
+  if (mass < 5) {
+    cli::cli_warn(c(
+      "The reference category {.val {colnames(A)[ncol(A)]}} has an allocation of only {round(mass, 1)} carriers under approach {.val {approach}}.",
+      "i" = "Estimates then depend more on the prior; put a common serotype or a pooled category last in {.arg categories}."
+    ))
+  }
 }
 
 # Child-level presence indicators (children x outcomes): overall carriage,
@@ -214,12 +245,13 @@ presence_outcomes <- function(dat) {
 
 # Carriers of a serotype group, their group density (sum of the
 # serotype-specific densities, density x relative abundance) and the
-# number of serotypes used for the multiplicity effect.
+# number of serotypes used for the multiplicity effect (capped at M, and
+# uncapped in m_raw).
 density_group <- function(dat, group, multiplicity = "group",
                           call = rlang::caller_env()) {
   if (group == "total") {
     return(list(rows = dat$pos_idx, density = dat$dens_pos,
-                m = pmin(dat$m_obs, dat$M)))
+                m = pmin(dat$m_obs, dat$M), m_raw = dat$m_obs))
   }
   if (!dat$has_abundance) {
     cli::cli_abort(
@@ -233,10 +265,12 @@ density_group <- function(dat, group, multiplicity = "group",
   sub <- sl[in_group, ]
   dens_sero <- sub$abundance * dat$dens_pos[sub$k]
   m_group <- as.vector(table(factor(sub$k, levels = k)))
+  m_raw <- if (multiplicity == "group") m_group else dat$m_obs[k]
   list(
     rows = dat$pos_idx[k],
     density = as.vector(rowsum(dens_sero, factor(sub$k, levels = k))),
-    m = pmin(if (multiplicity == "group") m_group else dat$m_obs[k], dat$M)
+    m = pmin(m_raw, dat$M),
+    m_raw = m_raw
   )
 }
 

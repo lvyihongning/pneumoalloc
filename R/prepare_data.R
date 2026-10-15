@@ -25,9 +25,11 @@
 #'   each child.
 #' @param categories Serotypes modelled as their own category in the
 #'   unified framework; other detected serotypes are pooled into
-#'   `other_label`. The default keeps every detected serotype. Every
-#'   detected vaccine serotype must be in `categories`, so that the pooled
-#'   category holds only non-vaccine serotypes.
+#'   `other_label`. The default keeps every detected serotype, with the
+#'   non-vaccine serotypes in serotype order and the most frequently
+#'   detected one last. Every detected vaccine serotype must be in
+#'   `categories`, so that the pooled category holds only non-vaccine
+#'   serotypes.
 #' @param other_label Label of the pooled category.
 #' @param covariates Names of the covariate columns that models may adjust
 #'   for. The analysis population is restricted to children with complete
@@ -53,8 +55,10 @@
 #' Serotype categories are ordered as vaccine serotypes (in the order of
 #' `vaccine_types`), then non-vaccine serotypes (in the order of
 #' `categories`), then the pooled category. The **last** category is the
-#' reference category of the composition model. Categories that are never
-#' detected are dropped.
+#' reference category of the composition model: the pooled category, or
+#' otherwise the last non-vaccine serotype of `categories`. Choose a common
+#' one, since the priors are on log ratios against it. Categories that are
+#' never detected are dropped.
 #'
 #' @export
 #' @examples
@@ -122,6 +126,26 @@ prepare_carriage_data <- function(data, survey, serotypes, density,
   S <- as.matrix(d[, serotypes, drop = FALSE])
   S <- matrix(trimws(as.character(S)), nrow = N)
   S[!is.na(S) & S == ""] <- NA
+  Rab <- if (!is.null(abundance)) {
+    matrix(suppressWarnings(as.numeric(as.matrix(d[, abundance, drop = FALSE]))), nrow = N)
+  }
+  # a serotype in two slots of one child (e.g. 15B and 15C both recoded to
+  # 15B/C) is one serotype: keep the first slot and add up the abundances
+  dup_rows <- which(apply(S, 1, function(s) anyDuplicated(s[!is.na(s)]) > 0))
+  for (i in dup_rows) {
+    first <- match(S[i, ], S[i, ])
+    extra <- which(!is.na(S[i, ]) & first != seq_along(first))
+    if (!is.null(Rab)) {
+      for (j in extra) Rab[i, first[j]] <- Rab[i, first[j]] + Rab[i, j]
+    }
+    S[i, extra] <- NA
+  }
+  if (length(dup_rows) > 0) {
+    cli::cli_inform(c(
+      "{length(dup_rows)} child{?ren} with the same serotype in more than one slot; counted once.",
+      "i" = if (!is.null(abundance)) "Their relative abundances are added up."
+    ))
+  }
   n_sero <- as.integer(rowSums(!is.na(S)))
   carrier <- as.integer(n_sero > 0)
   pos_idx <- which(carrier == 1L)
@@ -185,8 +209,7 @@ prepare_carriage_data <- function(data, survey, serotypes, density,
   }
 
   if (!is.null(abundance)) {
-    R <- as.matrix(d[, abundance, drop = FALSE])
-    ra <- suppressWarnings(as.numeric(R[cbind(sero_long$child, sero_long$slot)]))
+    ra <- Rab[cbind(sero_long$child, sero_long$slot)]
     if (any(!is.finite(ra) | ra <= 0)) {
       cli::cli_abort(
         "{.arg abundance} must be positive and finite for every detected serotype."
@@ -212,7 +235,15 @@ prepare_carriage_data <- function(data, survey, serotypes, density,
 
   # ---- serotype categories ----
   detected <- unique(sero_long$serotype)
-  categories <- categories %||% detected
+  if (is.null(categories)) {
+    # every detected serotype; non-vaccine serotypes in serotype order with
+    # the most frequently detected one last, as the reference category
+    nvt <- sort_serotypes(setdiff(detected, vaccine_types))
+    freq <- table(factor(sero_long$serotype, levels = nvt))
+    top <- nvt[which.max(freq)]
+    categories <- c(intersect(vaccine_types, detected), setdiff(nvt, top), top)
+  }
+  categories <- setdiff(categories, other_label)
   vt_pooled <- setdiff(intersect(detected, vaccine_types), categories)
   if (length(vt_pooled) > 0) {
     cli::cli_abort(c(
@@ -292,6 +323,13 @@ print.carriage_data <- function(x, ...) {
   if (!x$has_abundance) approaches <- approaches[1:2]
   cli::cli_text("Available approaches: {.val {approaches}}.")
   invisible(x)
+}
+
+# Serotype names in natural order (1, 3, 6A, 6B, 10A, 15B/C, ...), then
+# names that do not start with a number
+sort_serotypes <- function(x) {
+  num <- suppressWarnings(as.numeric(sub("^([0-9]+).*$", "\\1", x)))
+  x[order(is.na(num), num, x)]
 }
 
 # The children with multiple carriage, in the layout used by the

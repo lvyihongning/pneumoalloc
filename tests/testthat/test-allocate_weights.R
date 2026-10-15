@@ -58,3 +58,21 @@ test_that("crude estimates are consistent", {
   ty <- st[st$measure != "prevalence", ]
   expect_equal(as.vector(tapply(ty$value, ty$survey, sum)), rep(1, 3))
 })
+
+test_that("describe_prevalence() handles a round without multiple carriers", {
+  sim <- simulate_carriage_data(seed = 1)
+  last <- sim$survey == levels(factor(sim$survey))[3]
+  sim[last, c("sero2", "sero3")] <- NA
+  dat <- suppressMessages(prepare_carriage_data(
+    sim, "survey", c("sero1", "sero2", "sero3"), density = "density",
+    abundance = c("ra1", "ra2", "ra3")
+  ))
+  lev3 <- dat$survey_levels[3]
+  for (ap in c("equal", "density", "presence")) {
+    cm <- describe_prevalence(dat, ap, population = "multiple")
+    expect_true(all(is.na(cm$value[cm$survey == lev3])))
+    expect_false(anyNA(cm$value[cm$survey != lev3]))
+  }
+  gp <- describe_group_proportions(dat, "15B/C", population = "multiple")
+  expect_true(is.na(gp$value[gp$survey == lev3]))
+})

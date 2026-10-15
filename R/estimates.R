@@ -308,9 +308,19 @@ density_ratios <- function(object, reference = "baseline", statistic = NULL,
   tibble::as_tibble(tab)
 }
 
+# Number of multiplicity levels a fit distinguishes, and whether the top
+# level also holds children with more serotypes ("3+")
+mult_levels <- function(object) {
+  if (object$type == "density" && !is.null(object$labels$m_levels)) {
+    return(list(M = object$labels$m_levels, plus = object$labels$m_plus))
+  }
+  list(M = object$data$M, plus = object$data$capped)
+}
+
 multiplicity_ratios <- function(object, lev, ref) {
-  M <- object$data$M
-  lab <- function(g) sub(" serotypes?$", "", count_label(g, object$data$capped && g == M))
+  ml <- mult_levels(object)
+  M <- ml$M
+  lab <- function(g) sub(" serotypes?$", "", count_label(g, ml$plus && g == M))
   vs <- function(g, h) paste(lab(g), "vs", lab(h), if (h == 1) "serotype" else "serotypes")
   pooled <- function(arr, outcome) {
     e <- entry(arr, outcome, density_group_of(object), "density ratio",
@@ -323,7 +333,7 @@ multiplicity_ratios <- function(object, lev, ref) {
   if (object$type == "unified") {
     # the density component has shifts for >= 2 and >= 3 serotypes
     top <- if (M > 3) "3+" else lab(3)
-    vars <- c(`2 vs 1 serotype` = "dens_fold_2vs1")
+    vars <- stats::setNames("dens_fold_2vs1", paste(lab(2), "vs 1 serotype"))
     if (M >= 3) {
       vars <- c(vars, stats::setNames(c("dens_fold_3vs2", "dens_fold_3vs1"),
                                       c(paste(top, "vs 2 serotypes"),
@@ -380,13 +390,20 @@ select_statistic <- function(entries, statistic, call = rlang::caller_env()) {
 
 density_entries <- function(object) {
   get <- function(v) draws_array(object, v)
-  by_m <- paste("All carriers with", state_labels(object$data$M, object$data$capped)[-1])
+  ml <- mult_levels(object)
+  by_m <- paste("All carriers with", state_labels(ml$M, ml$plus)[-1])
   switch(
     object$type,
-    unified = list(
-      entry(get("meanD_pos"), "Density", "total", "density among carriers", "mean"),
-      entry(get("meanD_pos_by_m"), by_m, "total", "density among carriers", "mean")
-    ),
+    unified = {
+      # the density component distinguishes 1, 2 and 3+ serotypes
+      M3 <- min(ml$M, 3L)
+      by_m3 <- paste("All carriers with", state_labels(M3, ml$plus || ml$M > 3)[-1])
+      list(
+        entry(get("meanD_pos"), "Density", "total", "density among carriers", "mean"),
+        entry(get("meanD_pos_by_m")[, , seq_len(M3), drop = FALSE], by_m3, "total",
+              "density among carriers", "mean")
+      )
+    },
     unified_multiple = list(
       entry(get("meanD"), "Density", "total", "density among multiple carriers", "mean")
     ),

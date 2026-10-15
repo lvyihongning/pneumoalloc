@@ -101,3 +101,28 @@ test_that("presence and density data are built", {
   no_ab <- prepare_carriage_data(sim, "survey", c("sero1", "sero2", "sero3"), density = "density")
   expect_error(carriage_stan_data(no_ab, "density", group = "VT"), "relative abundance")
 })
+
+test_that("a covariate with a single value in the population gives a clear error", {
+  sim <- simulate_carriage_data(seed = 1)
+  sim$grp <- factor(ifelse(rowSums(!is.na(sim[, c("sero1", "sero2", "sero3")])) >= 2, "a", "b"))
+  dat <- suppressMessages(prepare_carriage_data(
+    sim, "survey", c("sero1", "sero2", "sero3"), density = "density",
+    categories = c(pcv10_types(), "6A", "15B/C"), covariates = "grp"
+  ))
+  expect_error(carriage_stan_data(dat, "unified_multiple", "equal", ~ grp), "single value")
+  expect_no_error(carriage_stan_data(dat, "unified", "equal", ~ grp))
+})
+
+test_that("density models keep the multiplicity levels observed in the group", {
+  dat <- example_data()
+  for (g in c("total", "VT", "NVT")) {
+    sd <- carriage_stan_data(dat, "density", group = g)
+    expect_equal(sd$M, max(2L, sd$m_sh))
+  }
+})
+
+test_that("a rare reference category gives a warning", {
+  A <- cbind(a = c(1, 0.5, 1), b = c(0, 0.5, 0))
+  expect_warning(check_reference_category(A, "equal"), "allocation of only 0.5")
+  expect_no_warning(check_reference_category(A[rep(1:3, 10), 2:1], "equal"))
+})

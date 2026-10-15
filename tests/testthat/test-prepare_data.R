@@ -72,3 +72,45 @@ test_that("prepare_carriage_data() gives informative errors", {
   sim$density[which(!is.na(sim$sero1))[1]] <- NA
   expect_error(prepare_carriage_data(sim, "survey", s3, "density"), "positive and finite")
 })
+
+test_that("default categories do not depend on row order", {
+  sim <- simulate_carriage_data(seed = 1)
+  args <- list(survey = "survey", serotypes = c("sero1", "sero2", "sero3"),
+               density = "density", abundance = c("ra1", "ra2", "ra3"))
+  d1 <- suppressMessages(do.call(prepare_carriage_data, c(list(sim), args)))
+  set.seed(2)
+  d2 <- suppressMessages(do.call(prepare_carriage_data,
+                                 c(list(sim[sample(nrow(sim)), ]), args)))
+  expect_equal(d1$sero_levels, d2$sero_levels)
+  # reference: the most frequently detected non-vaccine serotype
+  nvt <- d1$sero_long$serotype[!d1$sero_long$vaccine_type]
+  expect_equal(d1$sero_levels[length(d1$sero_levels)],
+               names(sort(table(nvt), decreasing = TRUE))[1])
+  expect_equal(sort_serotypes(c("NT", "15B/C", "6B", "10A", "6A", "3")),
+               c("3", "6A", "6B", "10A", "15B/C", "NT"))
+})
+
+test_that("other_label in categories is not duplicated", {
+  sim <- simulate_carriage_data(seed = 1)
+  dat <- suppressMessages(prepare_carriage_data(
+    sim, "survey", c("sero1", "sero2", "sero3"), density = "density",
+    categories = c(pcv10_types(), "6A", "Other NVT")
+  ))
+  expect_equal(anyDuplicated(dat$sero_levels), 0L)
+  expect_equal(dat$sero_levels[length(dat$sero_levels)], "Other NVT")
+})
+
+test_that("a serotype in two slots of one child is counted once", {
+  sim <- simulate_carriage_data(seed = 1)
+  i <- which(!is.na(sim$sero1) & is.na(sim$sero2))[1]
+  sim$sero2[i] <- sim$sero1[i]
+  sim$ra1[i] <- 0.6
+  sim$ra2[i] <- 0.4
+  expect_message(
+    dat <- prepare_carriage_data(sim, "survey", c("sero1", "sero2", "sero3"),
+                                 density = "density", abundance = c("ra1", "ra2", "ra3")),
+    "counted once"
+  )
+  expect_equal(dat$n_sero[i], 1L)
+  expect_equal(dat$sero_long$abundance[dat$sero_long$child == i], 1)
+})

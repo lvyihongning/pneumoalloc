@@ -50,17 +50,19 @@ describe_prevalence <- function(dat, approach = "density",
 
   if (ap$name == "presence") {
     # proportion of children (or multiple carriers) with detection
-    share <- rowsum(W, k_survey) / n_carriers
-    share_vt <- as.vector(rowsum(as.numeric(rowSums(W[, vt, drop = FALSE]) > 0), k_survey)) / n_carriers
-    share_nvt <- as.vector(rowsum(as.numeric(rowSums(W[, !vt, drop = FALSE]) > 0), k_survey)) / n_carriers
+    share <- rowsum_rounds(W, k_survey) / n_carriers
+    share_vt <- as.vector(rowsum_rounds(as.numeric(rowSums(W[, vt, drop = FALSE]) > 0), k_survey)) / n_carriers
+    share_nvt <- as.vector(rowsum_rounds(as.numeric(rowSums(W[, !vt, drop = FALSE]) > 0), k_survey)) / n_carriers
   } else {
-    share <- rowsum(h * W, k_survey) / as.vector(rowsum(h, k_survey))
+    share <- rowsum_rounds(h * W, k_survey) / as.vector(rowsum_rounds(h, k_survey))
     share_vt <- rowSums(share[, vt, drop = FALSE])
     share_nvt <- rowSums(share[, !vt, drop = FALSE])
   }
-  share <- share[lev, , drop = FALSE]
   C <- ncol(W)
   value <- unname(c(rep(1, length(lev)), share_vt, share_nvt, as.vector(share)) * scale)
+  # a round without carriers: prevalence 0 among all children, and no
+  # proportion among (zero) multiple carriers
+  value[is.nan(value)] <- if (population == "all") 0 else NA_real_
 
   tibble::tibble(
     approach = ap$approach,
@@ -75,6 +77,16 @@ describe_prevalence <- function(dat, approach = "density",
     n_carriers = rep(n_carriers, 3 + C),
     value = value
   )
+}
+
+# rowsum() with one row per survey round (factor level), including rounds
+# without carriers
+rowsum_rounds <- function(x, g) {
+  x <- as.matrix(x)
+  out <- matrix(0, nlevels(g), ncol(x), dimnames = list(levels(g), colnames(x)))
+  s <- rowsum(x, g)
+  out[rownames(s), ] <- s
+  out
 }
 
 #' Crude carriage states and types of multiple carriage

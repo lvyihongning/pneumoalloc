@@ -46,9 +46,11 @@ each child.}
 
 \item{categories}{Serotypes modelled as their own category in the
 unified framework; other detected serotypes are pooled into
-\code{other_label}. The default keeps every detected serotype. Every
-detected vaccine serotype must be in \code{categories}, so that the pooled
-category holds only non-vaccine serotypes.}
+\code{other_label}. The default keeps every detected serotype, with the
+non-vaccine serotypes in serotype order and the most frequently
+detected one last. Every detected vaccine serotype must be in
+\code{categories}, so that the pooled category holds only non-vaccine
+serotypes.}
 
 \item{other_label}{Label of the pooled category.}
 
@@ -80,8 +82,10 @@ An object of class \code{carriage_data}.
 Serotype categories are ordered as vaccine serotypes (in the order of
 \code{vaccine_types}), then non-vaccine serotypes (in the order of
 \code{categories}), then the pooled category. The \strong{last} category is the
-reference category of the composition model. Categories that are never
-detected are dropped.
+reference category of the composition model: the pooled category, or
+otherwise the last non-vaccine serotype of \code{categories}. Choose a common
+one, since the priors are on log ratios against it. Categories that are
+never detected are dropped.
 }
 \description{
 Builds the analysis data shared by every model: the analysis population
