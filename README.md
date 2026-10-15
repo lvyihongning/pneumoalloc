@@ -50,6 +50,12 @@ builds exactly the model inputs of that analysis.
   distinguish up to 5 per child, or fewer with `max_serotypes` (higher
   numbers pooled, e.g. "3+ serotypes").
 
+## Data
+
+The package contains no study data. Examples, tests and the vignette use
+data simulated with `simulate_carriage_data()` and the hypothetical
+ten-child example `table_s1`.
+
 ## Installation
 
 pneumoalloc fits its models with [CmdStan](https://mc-stan.org/cmdstanr/)
@@ -123,6 +129,11 @@ multi <- fit_carriage(dat, approach = "all", population = "multiple",
 # step 4: density among carriers (total, PCV10, non-PCV10)
 dens <- fit_density(dat, covariates = ~ age_z + sex)
 density_ratios(dens, statistic = "median", multiplicity = TRUE)
+
+# figures (ggplot objects)
+plot_prevalence(fits)
+plot_ratios(fits)
+plot_serotype_ratios(fits[c("dominant", "density")])
 
 save_fit(fits, "fits_adjusted.rds")
 write_results(fits, "results_adjusted.xlsx")

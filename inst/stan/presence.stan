@@ -28,7 +28,7 @@ data {
   int<lower=1> C;                          // binary outcomes
 
   array[C, N] int<lower=0, upper=1> y;
-  matrix[N, K] X;                          // ~ 0 + survey_yearmon (+ covariates)
+  matrix[N, K] X;                          // ~ 0 + survey (+ covariates)
   array[T] matrix[N, K] X_pred;            // counterfactual designs
 
   int<lower=1, upper=T> baseline;

@@ -56,3 +56,11 @@ test_that("group densities and presence outcomes follow Table S1", {
   expect_equal(colSums(y)[c("Overall", "VT", "NVT", "Multiple carriage")],
                c(Overall = 6, VT = 5, NVT = 4, `Multiple carriage` = 3))
 })
+
+test_that("the package ships no study data", {
+  # Only the hypothetical Table S1 example; examples, tests and vignettes
+  # use simulate_carriage_data().
+  rda <- list.files(system.file("data", package = "pneumoalloc"))
+  expect_true(all(grepl("^Rdata\\.|^table_s1", rda)))
+  expect_setequal(utils::data(package = "pneumoalloc")$results[, "Item"], "table_s1")
+})

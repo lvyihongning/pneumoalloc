@@ -25,6 +25,7 @@ Depends:
     R (>= 4.1.0)
 Imports: 
     cli,
+    ggplot2,
     posterior,
     rlang,
     stats,
@@ -34,6 +35,7 @@ Imports:
     withr
 Suggests: 
     cmdstanr (>= 0.8.0),
+    ggrepel,
     knitr,
     openxlsx,
     rmarkdown,

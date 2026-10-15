@@ -38,11 +38,16 @@
 #' [compare_approaches()]. [describe_prevalence()] and
 #' [describe_carriage_states()] give the crude (model-free) counterparts.
 #'
+#' **Figures**: [plot_prevalence()], [plot_ratios()],
+#' [plot_carriage_states()], [plot_density()], [plot_serotypes()] and
+#' [plot_serotype_ratios()].
+#'
 #' Prior scales are set with [carriage_priors()].
 #'
 #' @keywords internal
 "_PACKAGE"
 
 ## usethis namespace: start
+#' @importFrom rlang .data
 ## usethis namespace: end
 NULL

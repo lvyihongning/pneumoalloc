@@ -102,19 +102,18 @@ dat <- prepare_carriage_data(
 )
 dat
 
-# With the Nha Trang data the call would look like this (not run):
+# With your own data, replace the column names by those in your data
+# (not run):
 #   dat <- prepare_carriage_data(
-#     carr_dat,
-#     survey = "survey_yearmon",
-#     serotypes = c("sero1", "sero2", "sero3"),
-#     abundance = c("ra_sero1", "ra_sero2", "ra_sero3"),
-#     density = "dens_tot",
+#     my_data,
+#     survey = "<survey round column>",
+#     serotypes = c("<serotype 1>", "<serotype 2>", "<serotype 3>"),
+#     abundance = c("<abundance 1>", "<abundance 2>", "<abundance 3>"),
+#     density = "<total density column>",
 #     vaccine_types = pcv10_types(),
-#     categories = c(pcv10_types(), "6A", "NT2", "15A", "19A", "15B/C",
-#                    "11A", "35B", "23A", "34"),
-#     covariates = c("agemonth_z", "compchild", "trial_arm", "income_z",
-#                    "famnum_cat", "moedu1", "ill1"),
-#     reference = "Oct. 2016"
+#     categories = c(pcv10_types(), "<non-vaccine serotypes of interest>"),
+#     covariates = c("<covariate 1>", "<covariate 2>", "..."),
+#     reference = "<pre-vaccination survey round>"
 #   )
 
 # Crude estimates, before any model
@@ -321,6 +320,22 @@ dens_int <- fit_density(
   m_rep = 1000, chains = 2, iter_warmup = 500, iter_sampling = 500, refresh = 0
 )
 density_ratios(dens_int, statistic = "median", multiplicity = TRUE)
+
+
+# ==========================================================
+# 7b) Figures
+# ==========================================================
+# Each function returns a ggplot object: print it, change it with the usual
+# ggplot2 syntax, combine panels (e.g. with 'patchwork') or save with
+# ggplot2::ggsave().
+plot_carriage_states(states)                          # Fig 1A: carriage states
+plot_carriage_states(types)                           # Fig 1B: types of multiple carriage
+plot_prevalence(c(fits, list(presence = presence)))   # Fig 2A-B: VT and NVT prevalence
+plot_ratios(fits)                                     # Fig 2C-D: prevalence ratios
+plot_density(dens)                                    # Fig 3: density
+plot_serotypes(fits[c("dominant", "density")])        # Fig 4A: serotypes, 2016 vs 2019
+plot_serotype_ratios(fits[c("dominant", "density")])  # Fig 4B: serotype ratios
+# ggplot2::ggsave("fig2.png", plot_prevalence(fits), width = 9, height = 4.5, dpi = 300)
 
 
 # ==========================================================
