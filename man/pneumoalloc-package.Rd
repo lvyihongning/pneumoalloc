@@ -53,10 +53,6 @@ round summing to its number of carriers.
 \code{\link[=compare_approaches]{compare_approaches()}}. \code{\link[=describe_prevalence]{describe_prevalence()}} and
 \code{\link[=describe_carriage_states]{describe_carriage_states()}} give the crude (model-free) counterparts.
 
-\strong{Figures}: \code{\link[=plot_prevalence]{plot_prevalence()}}, \code{\link[=plot_ratios]{plot_ratios()}},
-\code{\link[=plot_carriage_states]{plot_carriage_states()}}, \code{\link[=plot_density]{plot_density()}}, \code{\link[=plot_serotypes]{plot_serotypes()}} and
-\code{\link[=plot_serotype_ratios]{plot_serotype_ratios()}}.
-
 Prior scales are set with \code{\link[=carriage_priors]{carriage_priors()}}.
 }
 \author{

@@ -323,22 +323,6 @@ density_ratios(dens_int, statistic = "median", multiplicity = TRUE)
 
 
 # ==========================================================
-# 7b) Figures
-# ==========================================================
-# Each function returns a ggplot object: print it, change it with the usual
-# ggplot2 syntax, combine panels (e.g. with 'patchwork') or save with
-# ggplot2::ggsave().
-plot_carriage_states(states)                          # Fig 1A: carriage states
-plot_carriage_states(types)                           # Fig 1B: types of multiple carriage
-plot_prevalence(c(fits, list(presence = presence)))   # Fig 2A-B: VT and NVT prevalence
-plot_ratios(fits)                                     # Fig 2C-D: prevalence ratios
-plot_density(dens)                                    # Fig 3: density
-plot_serotypes(fits[c("dominant", "density")])        # Fig 4A: serotypes, 2016 vs 2019
-plot_serotype_ratios(fits[c("dominant", "density")])  # Fig 4B: serotype ratios
-# ggplot2::ggsave("fig2.png", plot_prevalence(fits), width = 9, height = 4.5, dpi = 300)
-
-
-# ==========================================================
 # 8) Checking a fit
 # ==========================================================
 

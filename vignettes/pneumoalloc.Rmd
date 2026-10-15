@@ -270,20 +270,6 @@ density_ratios(dens_int, statistic = "median", multiplicity = TRUE)
 framework; there the mean density is marginalised over the predicted
 number of serotypes (`marginal_density(fits$density)`).
 
-## Figures
-
-Each plotting function returns a ggplot object, which can be modified,
-combined or saved with `ggplot2::ggsave()`:
-
-```{r, eval = run_fits}
-plot_carriage_states(fit_states)
-plot_prevalence(c(fits, list(presence = presence)))
-plot_ratios(fits)
-plot_density(dens)
-plot_serotypes(fits[c("dominant", "density")])
-plot_serotype_ratios(fits[c("dominant", "density")])
-```
-
 ## Checking fits and comparing approaches
 
 `check_fit()` reports sampler diagnostics, R-hat and ESS of the parameters

@@ -51,10 +51,6 @@
 * `group_proportions()` gives the proportion of a group of serotypes
   within VT, NVT or all carriage by survey round, and its ratio between
   rounds; `describe_group_proportions()` the crude counterpart.
-* Figures: `plot_prevalence()`, `plot_ratios()`, `plot_carriage_states()`,
-  `plot_density()`, `plot_serotypes()` and `plot_serotype_ratios()`
-  reproduce the main figures of the PCV10 Nha Trang analysis from fits;
-  `theme_pneumoalloc()`.
 * `carriage_priors()` sets the prior scales of all models.
 * `table_s1`: the worked example of Table S1.
 * `inst/scripts/quick_test.R` runs every model on simulated data.

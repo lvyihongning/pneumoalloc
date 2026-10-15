@@ -134,11 +134,6 @@ multi <- fit_carriage(dat, approach = "all", population = "multiple",
 dens <- fit_density(dat, covariates = ~ age_z + sex)
 density_ratios(dens, statistic = "median", multiplicity = TRUE)
 
-# figures (ggplot objects)
-plot_prevalence(fits)
-plot_ratios(fits)
-plot_serotype_ratios(fits[c("dominant", "density")])
-
 save_fit(fits, "fits_adjusted.rds")
 write_results(fits, "results_adjusted.xlsx")
 ```
