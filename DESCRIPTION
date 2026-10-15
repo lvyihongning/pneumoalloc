@@ -1,0 +1,49 @@
+Package: pneumoalloc
+Title: Serotype-Specific Pneumococcal Carriage with Multiple Serotype
+    Carriage: A Unified Bayesian Framework
+Version: 0.1.0
+Authors@R: 
+    person("Kaige", "Dong", , "kaige.dong@charite.de", role = c("aut", "cre"))
+Description: Estimates overall, multiple serotype and serotype-specific
+    pneumococcal carriage prevalence, and their prevalence ratios across
+    repeated cross-sectional surveys, when children can carry more than one
+    serotype at a time. Carriage states (no carriage, one, two, three or
+    more serotypes) and the types of multiple serotype carriage are
+    estimated with multinomial-logit models. Serotype-specific prevalence
+    is estimated with one joint model of overall carriage (logistic),
+    serotype composition among carriers (fractional multinomial logit) and
+    density among carriers (lognormal with a multiplicity sub-model), in
+    all children or among children with multiple serotype carriage. Four
+    approaches to allocating a multiple carriage episode among its
+    serotypes (dominant serotype, equal share, relative abundance and
+    serotype-specific density) differ only in the allocation weights, so
+    they are compared on the same population, design and priors. All
+    estimates are standardised over the study population. Models are
+    fitted with 'Stan' through 'cmdstanr'.
+License: MIT + file LICENSE
+Depends: 
+    R (>= 4.1.0)
+Imports: 
+    cli,
+    posterior,
+    rlang,
+    stats,
+    tibble,
+    tools,
+    utils,
+    withr
+Suggests: 
+    cmdstanr (>= 0.8.0),
+    knitr,
+    openxlsx,
+    rmarkdown,
+    testthat (>= 3.0.0)
+Additional_repositories: https://stan-dev.r-universe.dev
+VignetteBuilder: knitr
+Config/testthat/edition: 3
+Encoding: UTF-8
+Roxygen: list(markdown = TRUE)
+RoxygenNote: 7.3.3
+SystemRequirements: CmdStan (>= 2.33), installed with
+    cmdstanr::install_cmdstan()
+LazyData: true

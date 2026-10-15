@@ -1,0 +1,339 @@
+---
+title: "Getting started with pneumoalloc"
+output: rmarkdown::html_vignette
+vignette: >
+  %\VignetteIndexEntry{Getting started with pneumoalloc}
+  %\VignetteEngine{knitr::rmarkdown}
+  %\VignetteEncoding{UTF-8}
+---
+
+```{r, include = FALSE}
+knitr::opts_chunk$set(collapse = TRUE, comment = "#>")
+# Model fits need CmdStan and take a few minutes. They run only when
+# PNEUMOALLOC_VIGNETTE_FITS=true, e.g. when building the pkgdown site.
+run_fits <- identical(Sys.getenv("PNEUMOALLOC_VIGNETTE_FITS"), "true")
+```
+
+## The problem
+
+In carriage surveys a child can carry several pneumococcal serotypes at
+once: a dominant serotype and one or more minority serotypes.
+Serotype-specific prevalence then depends on how such a carriage episode is
+counted. **pneumoalloc** defines serotype-specific prevalence by
+allocating each carriage episode among its serotypes, so that serotype
+prevalences add up to overall carriage. It compares four allocation
+approaches:
+
+```{r}
+library(pneumoalloc)
+allocation_approaches()
+```
+
+The analysis follows three steps, as in the PCV10 Nha Trang analysis:
+
+| Step | Question | Function |
+|---|---|---|
+| 1 | How common are carriage and multiple serotype carriage? What types of multiple carriage occur? | `fit_carriage_states()`, `fit_multiple_types()` |
+| 2 | Serotype-specific prevalence among all children | `fit_carriage(population = "all")`; comparator: `fit_presence()` |
+| 3 | Serotype composition among children with multiple carriage | `fit_carriage(population = "multiple")` |
+| 4 | Density among carriers: all pneumococci, PCV10 and non-PCV10 serotypes | `fit_density()` |
+
+Every model standardises its estimates over the study population
+(posterior g-computation): every child is set to each survey round, the
+predictions are averaged over the children within each posterior draw, and
+ratios between rounds are formed within the same draw.
+
+## A worked example (Table S1)
+
+`table_s1` is a hypothetical population of ten children, six of them
+carriers:
+
+```{r}
+table_s1
+ex <- prepare_carriage_data(
+  table_s1, survey = "survey",
+  serotypes = c("sero1", "sero2", "sero3"),
+  abundance = c("ra1", "ra2", "ra3"),
+  density = "density"
+)
+```
+
+Each approach gives every carrier a contribution to each serotype. Child 6
+carries 6B (relative abundance 0.5), 15A (0.3) and 23A (0.2):
+
+```{r}
+k6 <- which(ex$pos_idx == 6)
+sapply(c("dominant", "equal", "abundance", "presence"),
+       function(a) allocate_weights(ex, a)[k6, c("6B", "15A", "23A")])
+```
+
+Under the `density` approach the contributions are also weighted by the
+child's density relative to the mean density of carriers. Prevalence of
+PCV10 and non-PCV10 carriage, as numbers of the ten children:
+
+```{r}
+crude <- lapply(c("dominant", "equal", "abundance", "density", "presence"),
+                function(a) describe_prevalence(ex, a))
+totals <- sapply(crude, function(x) 10 * x$value[match(c("VT", "NVT", "Overall"), x$outcome)])
+dimnames(totals) <- list(c("PCV10", "Non-PCV10", "Overall"),
+                         c("dominant", "equal", "abundance", "density", "presence"))
+round(totals, 3)
+```
+
+All four allocation approaches keep overall carriage at six children; the
+presence-based approach counts children with both kinds of serotype twice.
+
+## Preparing survey data
+
+The data need one row per child: the survey round, one column per
+detected-serotype slot, the relative abundance of each slot and total
+density. `simulate_carriage_data()` makes an example with three rounds, the
+first before vaccine introduction:
+
+```{r}
+sim <- simulate_carriage_data(seed = 1)
+head(sim)
+```
+
+`prepare_carriage_data()` builds everything the models share. Rare
+non-vaccine serotypes are pooled into "Other NVT", the reference category
+of the composition model. Declare every covariate you may adjust for, so
+that unadjusted and adjusted models use the same children, and choose the
+reference (pre-vaccination) round for prevalence ratios.
+
+```{r}
+dat <- prepare_carriage_data(
+  sim,
+  survey = "survey",
+  serotypes = c("sero1", "sero2", "sero3"),
+  abundance = c("ra1", "ra2", "ra3"),
+  density = "density",
+  vaccine_types = pcv10_types(),
+  categories = c(pcv10_types(), "6A", "15B/C", "19A", "11A", "35B"),
+  covariates = c("age_z", "sex"),
+  reference = "2016"
+)
+dat
+```
+
+Any set of serotypes can form the vaccine-type group (`vaccine_types()`
+has the sets of PCV7 to PCV21 and PPSV23, with `add` and `remove`), any
+number of covariates can be declared, and `max_serotypes` sets how many
+serotypes per child the models distinguish (by default the largest number
+detected, up to 5).
+
+Crude estimates need no model:
+
+```{r}
+states <- describe_carriage_states(dat)
+states[states$outcome %in% c("Carriage", "Multiple carriage"), ]
+```
+
+## Step 1: overall and multiple serotype carriage
+
+`fit_carriage_states()` classifies each child by the number of detected
+serotypes (none, one, two, three) in a multinomial-logit model.
+`fit_multiple_types()` classifies children with multiple carriage as
+VT-only, NVT-only, mixed VT-dominant or mixed NVT-dominant. Both take a
+covariate formula for adjusted models (`NULL`, the default, fits the
+unadjusted model):
+
+```{r, eval = run_fits}
+fit_states <- fit_carriage_states(dat, covariates = ~ age_z + sex, refresh = 0)
+fit_types <- fit_multiple_types(dat, covariates = ~ age_z + sex, refresh = 0)
+
+marginal_prevalence(fit_states, groups = c("carriage", "multiple"))
+prevalence_ratios(fit_states, groups = c("carriage", "multiple"))
+prevalence_ratios(fit_types)
+```
+
+By default, prevalence ratios compare each round with the reference round.
+Use `reference = "previous"` to compare each round with the one before it,
+or name any round:
+
+```{r, eval = run_fits}
+prevalence_ratios(fit_states, groups = "multiple", reference = "previous")
+```
+
+## Step 2: serotype-specific carriage among all children
+
+`fit_carriage()` fits the unified framework: overall carriage (logistic),
+serotype composition among carriers (fractional multinomial logit) and
+density among carriers (lognormal with a sub-model for the number of
+serotypes), jointly. The approaches differ only in the allocation weights,
+so all fits share the population, design and priors. Choose the
+approaches by the aim of the analysis: one approach (e.g.
+`approach = "density"`), several (`c("dominant", "density")`), or
+`"all"` (the default) to compare them. The defaults are 4 chains of
+1000 warm-up and 2000 sampling iterations.
+
+```{r, eval = run_fits}
+fits <- fit_carriage(dat, approach = "all", covariates = ~ age_z + sex, refresh = 0)
+fits
+```
+
+Estimates and ratios for PCV10 and non-PCV10 carriage, and for each
+serotype:
+
+```{r, eval = run_fits}
+prev <- marginal_prevalence(fits$density, groups = c("overall", "VT", "NVT"))
+prev[prev$measure == "prevalence", c("outcome", "survey", "estimate")]
+
+pr <- prevalence_ratios(fits$density, groups = "serotype")
+pr[pr$measure == "prevalence", c("outcome", "survey", "estimate", "reportable")]
+```
+
+Serotype ratios are flagged as not `reportable` when the reference-round
+prevalence is close to zero.
+
+Mean density among carriers, its ratio between rounds and the density
+ratios by number of serotypes:
+
+```{r, eval = run_fits}
+density_ratios(fits$density, multiplicity = TRUE)
+```
+
+### Serotype groups within VT or NVT carriage
+
+`group_proportions()` gives the share of a group of serotypes in
+non-PCV10 (`among = "NVT"`), PCV10 (`"VT"`) or all carriage by survey
+round, and its ratio between rounds, formed within each posterior draw:
+
+```{r, eval = run_fits}
+group_proportions(fits$density, list("15B/C+23A+35B" = c("15B/C", "23A", "35B")),
+                  among = "NVT")
+```
+
+### The presence-based approach
+
+Many carriage studies use a presence-based definition: a serotype counts
+whenever it is detected, regardless of dominance, abundance or density.
+`fit_presence()` fits it (an independent logistic model per outcome, on
+the same design) for comparison. A child carrying both a PCV10 and a
+non-PCV10 serotype counts for both, so the two prevalences can add up to
+more than overall carriage. Add the fit to `compare_approaches()` to see
+it next to the four allocation approaches:
+
+```{r, eval = run_fits}
+presence <- fit_presence(dat, covariates = ~ age_z + sex, refresh = 0)
+cmp_all <- compare_approaches(c(fits, list(presence = presence)))
+r <- cmp_all$ratios
+r[r$group %in% c("VT", "NVT") & r$measure == "prevalence",
+  c("method", "outcome", "survey", "estimate")]
+```
+
+## Step 3: serotype composition of multiple carriage
+
+With `population = "multiple"` the same framework is fitted among children
+with multiple carriage only. The estimand is the serotype composition of
+multiple carriage, and the ratios are proportion ratios:
+
+```{r, eval = run_fits}
+fits_multi <- fit_carriage(dat, approach = "all", population = "multiple",
+                           covariates = ~ age_z + sex, refresh = 0)
+prevalence_ratios(fits_multi$density, groups = c("VT", "NVT"))
+```
+
+## Step 4: density among carriers
+
+`fit_density()` fits lognormal regressions of density among carriers,
+with effects for carrying at least two and at least three serotypes, for
+all pneumococci (`"total"`) and for the PCV10 (`"VT"`) and non-PCV10
+(`"NVT"`) serotypes. Group density is the sum of the serotype-specific
+densities (total density times relative abundance) of the group's
+serotypes. Observed densities first:
+
+```{r}
+describe_density(dat)
+```
+
+The model estimates the mean and the median density in each round, with
+the observed number of serotypes held fixed; the column `statistic` says
+which. Choose with `statistic`; the PCV10 Nha Trang analysis reports
+median density ratios:
+
+```{r, eval = run_fits}
+dens <- fit_density(dat, covariates = ~ age_z + sex, refresh = 0)
+density_ratios(dens, statistic = "median", multiplicity = TRUE)
+```
+
+`interaction = TRUE` lets the multiplicity effects differ by survey round
+and also returns their ratio to the reference round:
+
+```{r, eval = run_fits}
+dens_int <- fit_density(dat, group = "total", interaction = TRUE,
+                        covariates = ~ age_z + sex, refresh = 0)
+density_ratios(dens_int, statistic = "median", multiplicity = TRUE)
+```
+
+`fit_carriage()` also models total density, as part of the unified
+framework; there the mean density is marginalised over the predicted
+number of serotypes (`marginal_density(fits$density)`).
+
+## Checking fits and comparing approaches
+
+`check_fit()` reports sampler diagnostics, R-hat and ESS of the parameters
+and estimates, identities that must hold in every draw, and the comparison
+with the crude estimates (close for unadjusted models):
+
+```{r, eval = run_fits}
+check_fit(fits$density)
+```
+
+`compare_approaches()` checks that overall carriage, multiplicity and
+density, which do not depend on the allocation, agree across approaches
+within Monte Carlo error, and binds the estimates of all approaches for
+tables and figures:
+
+```{r, eval = run_fits}
+cmp <- compare_approaches(fits)
+summary(cmp$shared$z)
+vt_nvt <- cmp$ratios[cmp$ratios$group %in% c("VT", "NVT") & cmp$ratios$measure == "prevalence", ]
+vt_nvt[, c("method", "outcome", "survey", "estimate")]
+```
+
+Save fits with `save_fit()` (draws otherwise live in temporary files) and
+write all tables to Excel with `write_results()`:
+
+```{r, eval = FALSE}
+save_fit(fits, "fits_adjusted.rds")
+write_results(fits, "results_adjusted.xlsx")
+```
+
+## A quick test
+
+A script that runs every model on simulated data with short chains, and
+prints the main results and checks, is installed with the package:
+
+```{r, eval = FALSE}
+source(system.file("scripts", "quick_test.R", package = "pneumoalloc"))
+```
+
+## Priors
+
+The default priors are those of the PCV10 Nha Trang analysis. Prior scales
+are passed to Stan as data, so changing them needs no recompilation:
+
+```{r}
+carriage_priors()
+```
+
+```{r, eval = FALSE}
+fit_carriage(dat, approach = "density", priors = carriage_priors(share = 5))
+```
+
+## Run time
+
+The unified model is implemented with Stan's GLM functions and a
+precomputed composition term: the same model as the Stan file of the PCV10
+Nha Trang analysis (log densities equal to floating-point rounding), but
+several times faster. Within-chain threads do not speed it up: keep
+`threads_per_chain = 1` (the default) and give each chain its own core.
+
+## Running on a computing cluster
+
+Each fit is independent, so approaches and models can run as separate jobs
+(for example one Slurm array task per approach). Compile once with
+`carriage_model(model, dir = "<shared directory>")` and pass the result
+to the fitting functions as `model`. Parallelism comes from chains
+(`parallel_chains`).

@@ -1,0 +1,7 @@
+^pneumoalloc\.Rproj$
+^\.Rproj\.user$
+^LICENSE\.md$
+^\.DS_Store$
+^.*/\.DS_Store$
+^\.git$
+^data-raw$
