@@ -1,0 +1,20 @@
+cff-version: 1.2.0
+message: "If you use this software, please cite it as below."
+type: software
+title: "pneumoalloc: Serotype-Specific Pneumococcal Carriage with Multiple Serotype Carriage: A Unified Bayesian Framework"
+version: 0.1.0
+date-released: 2026-11-03
+license: MIT
+repository-code: "https://github.com/lvyihongning/pneumoalloc"
+authors:
+  - family-names: Dong
+    given-names: Kaige
+    affiliation: "Charité – Universitätsmedizin Berlin"
+keywords:
+  - pneumococcus
+  - serotype
+  - carriage
+  - vaccine impact
+  - Bayesian
+  - Stan
+  - R

@@ -1,32 +1,29 @@
 # pneumoalloc 0.1.0
 
-* First version (previously developed as 'seroshare'). Packages the models
-  of the PCV10 Nha Trang analysis:
+* First release. Packages the models of the PCV10 Nha Trang analysis:
   * `fit_carriage_states()`: overall and multiple serotype carriage
-    (`1_Co-colonisation_20261002.stan`, generalised to any number of
-    serotypes; same draws);
+    (generalised to any number of serotypes; same draws as the analysis
+    model);
   * `fit_multiple_types()`: types of multiple carriage
-    (`Proportion in co-colonisation_20261002.stan`; same draws);
+    (same draws as the analysis model);
   * `fit_carriage()`: the unified framework for approaches i-iv among all
-    children (`M1to4_unified_v4_20261002.stan`) or among children with
-    multiple carriage (`Multi_M1to4_unified_20261002.stan`).
+    children or among children with multiple carriage.
     `approach = "all"` (default) fits all four; one or several can be
     chosen instead. The all-children model is implemented with GLM
-    functions and a precomputed composition term: the published model,
+    functions and a precomputed composition term: the original analysis model,
     with log densities equal to rounding, about 4.6x faster on a 4-chain
     run on an Apple M4 (2.6 versus 11.9 minutes);
-  * `fit_presence()`: the presence-based comparator
-    (`Sensi_presence_based_20261002.stan`);
+  * `fit_presence()`: the presence-based comparator;
   * `fit_density()`: density among carriers for all pneumococci, PCV10 and
     non-PCV10 serotypes, with an optional survey x multiplicity
-    interaction (`All_density_20261002.stan`).
+    interaction.
 * Approach iv (`density`): carrier weights are Θᵢ / Θ̄ₜ, with Θ̄ₜ the mean
-  total density among carriers of the same survey round. The published
-  Stan files used one mean over all rounds; normalising within each round
+  total density among carriers of the same survey round. The original
+  analysis files used one mean over all rounds; normalising within each round
   keeps each round's weights summing to its number of carriers. Approaches
   i-iii are unchanged.
 * No commune (cluster) random effects: they were removed from all Stan
-  files; the published analyses did not use them.
+  files; the analyses did not use them.
 * `vaccine_types()` gives the serotypes of PCV7, PCV10, PCV10-SII, PCV13,
   PCV15, PCV20, PCV21 and PPSV23, combined and with `add`/`remove`; with
   `pcv10_types()`, `pcv13_types()`, `pcv15_types()` and `pcv20_types()`;

@@ -70,7 +70,10 @@ install.packages("cmdstanr", repos = c("https://stan-dev.r-universe.dev", getOpt
 cmdstanr::install_cmdstan()
 
 # install.packages("remotes")
-remotes::install_local("path/to/pneumoalloc")   # or install_github() once published
+remotes::install_github("lvyihongning/pneumoalloc")
+
+# or a specific release, e.g. the version used for the PCV10 Nha Trang analysis
+remotes::install_github("lvyihongning/pneumoalloc@v0.1.0")
 ```
 
 ## Tutorial
@@ -140,6 +143,12 @@ write_results(fits, "results_adjusted.xlsx")
 
 See `vignette("pneumoalloc")` for a full walk-through, including the
 worked example of Table S1 (`table_s1`).
+
+## Citation
+
+If you use pneumoalloc, please cite it; `citation("pneumoalloc")` gives the
+reference. A citation for the accompanying paper will be added on
+publication.
 
 ## Development
 

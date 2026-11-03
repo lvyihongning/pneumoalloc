@@ -1,0 +1,13 @@
+bibentry(
+  bibtype = "Manual",
+  title   = "{pneumoalloc}: Serotype-Specific Pneumococcal Carriage with Multiple Serotype Carriage: A Unified Bayesian Framework",
+  author  = person("Kaige", "Dong"),
+  year    = "2026",
+  note    = "R package version 0.1.0",
+  url     = "https://github.com/lvyihongning/pneumoalloc",
+  textVersion = paste(
+    "Dong K (2026). pneumoalloc: Serotype-Specific Pneumococcal Carriage with",
+    "Multiple Serotype Carriage: A Unified Bayesian Framework.",
+    "R package version 0.1.0. https://github.com/lvyihongning/pneumoalloc"
+  )
+)

@@ -4,6 +4,8 @@ Title: Serotype-Specific Pneumococcal Carriage with Multiple Serotype
 Version: 0.1.0
 Authors@R: 
     person("Kaige", "Dong", , "kaige.dong@charite.de", role = c("aut", "cre"))
+URL: https://github.com/lvyihongning/pneumoalloc
+BugReports: https://github.com/lvyihongning/pneumoalloc/issues
 Description: Estimates overall, multiple serotype and serotype-specific
     pneumococcal carriage prevalence, and their prevalence ratios across
     repeated cross-sectional surveys, when children can carry more than one

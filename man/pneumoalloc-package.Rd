@@ -55,6 +55,14 @@ round summing to its number of carriers.
 
 Prior scales are set with \code{\link[=carriage_priors]{carriage_priors()}}.
 }
+\seealso{
+Useful links:
+\itemize{
+  \item \url{https://github.com/lvyihongning/pneumoalloc}
+  \item Report bugs at \url{https://github.com/lvyihongning/pneumoalloc/issues}
+}
+
+}
 \author{
 \strong{Maintainer}: Kaige Dong \email{kaige.dong@charite.de}
 
